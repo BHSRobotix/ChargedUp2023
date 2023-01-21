@@ -65,7 +65,7 @@ public class RobotContainer {
     }
 
     private void buildAutoCommands() {
-        autoCommands.put(AutonomousModes.BALANCE, new BalanceAuto());
+        autoCommands.put(AutonomousModes.BALANCE, new BalanceAuto(driveTrain));
     }
 
 

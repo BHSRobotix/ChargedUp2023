@@ -65,6 +65,7 @@ public class DriveTrain extends SubsystemBase {
      */
     public void resetNavx() {
         navx.reset();
+        navx.calibrate();
     }
 
     public void resetEncoders() {
@@ -73,7 +74,7 @@ public class DriveTrain extends SubsystemBase {
     }
 
     public void arcadeDrive(double speed, double rotation) {
-        differentialDrive.arcadeDrive(-speed, -rotation);
+        differentialDrive.arcadeDrive(speed, rotation);
     }
 
     public void setTalonMode(NeutralMode mode) {

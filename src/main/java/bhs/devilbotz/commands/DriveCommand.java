@@ -31,8 +31,8 @@ public class DriveCommand extends CommandBase {
     @Override
     public void execute() {
         drive.arcadeDrive(
-                speedSlewRateLimiter.calculate(speed.getAsDouble()),
-                rotationSlewRateLimiter.calculate(rotation.getAsDouble()
+                speedSlewRateLimiter.calculate(-speed.getAsDouble()),
+                rotationSlewRateLimiter.calculate(-rotation.getAsDouble()
                 ));
     }
 
