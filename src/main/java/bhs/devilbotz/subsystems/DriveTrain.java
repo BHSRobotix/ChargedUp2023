@@ -1,9 +1,5 @@
 package bhs.devilbotz.subsystems;
 
-import bhs.devilbotz.Constants.DriveConstants;
-import bhs.devilbotz.Constants.SysIdConstants;
-import bhs.devilbotz.Robot;
-import bhs.devilbotz.utils.ShuffleboardManager;
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.TalonSRXSimCollection;
@@ -11,6 +7,11 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import com.pathplanner.lib.PathPlannerTrajectory;
 import com.pathplanner.lib.commands.PPRamseteCommand;
+
+import bhs.devilbotz.Constants.DriveConstants;
+import bhs.devilbotz.Constants.SysIdConstants;
+import bhs.devilbotz.Robot;
+import bhs.devilbotz.utils.ShuffleboardManager;
 import edu.wpi.first.hal.SimDouble;
 import edu.wpi.first.hal.simulation.SimDeviceDataJNI;
 import edu.wpi.first.math.VecBuilder;
@@ -22,6 +23,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
@@ -215,6 +218,17 @@ public class DriveTrain extends SubsystemBase {
         new DifferentialDriveOdometry(navx.getRotation2d(), getLeftDistance(), getRightDistance());
   }
 
+  public double round(double v) {
+    v = v * 100;
+    v = Math.floor(v);
+    v = v / 100;
+    return v;
+  }
+  NetworkTableEntry m_xEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("X");
+  NetworkTableEntry m_yEntry = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("Y");
+  NetworkTableEntry m_rot = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("rot");
+  NetworkTableEntry m_ws = NetworkTableInstance.getDefault().getTable("troubleshooting").getEntry("ws");
+
   /**
    * This method updates once per loop of the robot.
    *
@@ -225,7 +239,20 @@ public class DriveTrain extends SubsystemBase {
   @Override
   public void periodic() {
     // Updates the odometry of the drive train.
-    updateOdometry();
+    //updateOdometry();
+    
+    odometry.update(navx.getRotation2d(), getLeftDistanceMeters(), getRightDistanceMeters());
+    //field.setRobotPose(odometry.getPoseMeters());
+    field.setRobotPose(getPose());
+
+    var translation = odometry.getPoseMeters().getTranslation();
+    m_xEntry.setNumber(translation.getX());
+    m_yEntry.setNumber(translation.getY());
+    m_rot.setNumber(round(translation.getAngle().getDegrees()));
+
+    DifferentialDriveWheelSpeeds ws = getWheelSpeeds();
+    Number wsArr[] = {round(ws.leftMetersPerSecond), round(ws.rightMetersPerSecond)};
+    m_ws.setNumberArray(wsArr);
   }
 
   /**
@@ -362,6 +389,29 @@ public class DriveTrain extends SubsystemBase {
 
   public double getAverageDistance() {
     return (getLeftDistance() + getRightDistance()) / 2;
+  }
+  /**
+   * Get the left encoder distance.
+   *
+   * @return The left encoder distance in meters.
+   * @see #getRightDistance()
+   * @since 1/30/2023
+   */
+  private double getLeftDistanceMeters() {
+    return edgesToMeters(leftMaster.getSelectedSensorPosition());
+        
+  }
+
+  /**
+   * Get the right encoder distance.
+   *
+   * @return The right encoder distance in meters.
+   * @see #getLeftDistance()
+   * @since 1/30/2023
+   */
+  private double getRightDistanceMeters() {
+    return edgesToMeters(rightMaster.getSelectedSensorPosition());
+        //* (2 * Math.PI * DriveConstants.WHEEL_RADIUS / DriveConstants.ENCODER_RESOLUTION);
   }
   /**
    * Get the left encoder velocity.
@@ -508,6 +558,7 @@ public class DriveTrain extends SubsystemBase {
     SmartDashboard.putNumber("Current X", currentPose.getX());
     SmartDashboard.putNumber("Current Y", currentPose.getY());
     SmartDashboard.putNumber("Current Angle", currentPose.getRotation().getDegrees());
+    
   }
 
   /**
@@ -544,6 +595,17 @@ public class DriveTrain extends SubsystemBase {
     SmartDashboard.putNumber("Starting Y", traj.getInitialPose().getY());
     SmartDashboard.putNumber("Starting Angle", traj.getInitialPose().getRotation().getDegrees());
 
+    //putTrajectoryOnField(traj);
+
+    var table = NetworkTableInstance.getDefault().getTable("troubleshooting");
+    var leftReference = table.getEntry("left_reference");
+    var leftMeasurement = table.getEntry("left_measurement");
+    var rightReference = table.getEntry("right_reference");
+    var rightMeasurement = table.getEntry("right_measurement");
+    
+    RamseteController ramsete = new RamseteController();
+    //ramsete.setEnabled(false);
+
     return new SequentialCommandGroup(
         new InstantCommand(
             () -> {
@@ -555,7 +617,7 @@ public class DriveTrain extends SubsystemBase {
         new PPRamseteCommand(
             traj,
             this::getPose, // Pose supplier
-            new RamseteController(),
+            ramsete,
             feedforward,
             this.kinematics, // DifferentialDriveKinematics
             this::getWheelSpeeds, // DifferentialDriveWheelSpeeds supplier
@@ -576,5 +638,52 @@ public class DriveTrain extends SubsystemBase {
             () -> {
               this.tankDriveVolts(0, 0);
             }));
+  }
+
+  public void putTrajectoryOnField(PathPlannerTrajectory trajectory) {
+    field.getObject("traj").setTrajectory(trajectory);
+  }
+
+   /**
+   * Converts from encoder edges to meters.
+   * 
+   * @param steps encoder edges to convert
+   * @return meters
+   */
+  public static double edgesToMeters(double steps) {
+    double r = Robot.getSysIdConstant("WHEEL_RADIUS").asDouble();
+    double c = 2 * Math.PI * r;
+    double er = Robot.getSysIdConstant("ENCODER_RESOLUTIONS").asDouble();
+    return (c / er) * steps;
+  }
+
+  /**
+   * Converts from encoder edges per 100 milliseconds to meters per second.
+   * @param stepsPerDecisec edges per decisecond
+   * @return meters per second
+   */
+  public static double edgesPerDecisecToMetersPerSec(double stepsPerDecisec) {
+    return edgesToMeters(stepsPerDecisec * 10);
+  }
+
+  /**
+   * Converts from meters to encoder edges.
+   * @param meters meters
+   * @return encoder edges
+   */
+  public static double metersToEdges(double meters) {
+    double r = Robot.getSysIdConstant("WHEEL_RADIUS").asDouble();
+    double c = 2 * Math.PI * r;
+    double er = Robot.getSysIdConstant("ENCODER_RESOLUTIONS").asDouble();
+    return (meters / c) * er;
+  }
+
+  /**
+   * Converts from meters per second to encoder edges per 100 milliseconds.
+   * @param metersPerSec meters per second
+   * @return encoder edges per decisecond
+   */
+  public static double metersPerSecToEdgesPerDecisec(double metersPerSec) {
+    return metersToEdges(metersPerSec) * .1d;
   }
 }
