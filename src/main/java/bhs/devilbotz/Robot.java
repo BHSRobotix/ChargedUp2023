@@ -10,8 +10,10 @@ import bhs.devilbotz.subsystems.Gripper;
 import bhs.devilbotz.utils.ShuffleboardManager;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.io.File;
@@ -85,11 +87,16 @@ public class Robot extends TimedRobot {
 
     autoMode = ShuffleboardManager.autoModeChooser.getSelected();
     shuffleboardManager.updateValues();
+    Pose2d p = robotContainer.driveTrain.field.getRobotPose();
+    SmartDashboard.putNumber("pose_x", p.getX());
+    SmartDashboard.putNumber("pose_y", p.getY());
   }
 
   /** This method is called once each time the robot enters Disabled mode. */
   @Override
-  public void disabledInit() {}
+  public void disabledInit() {
+    robotContainer.driveTrain.resetRobotPosition();
+  }
 
   @Override
   public void disabledPeriodic() {}
@@ -97,6 +104,9 @@ public class Robot extends TimedRobot {
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
+
+    robotContainer.driveTrain.resetRobotPosition();
+
     autonomousCommand = robotContainer.getAutonomousCommand(autoMode);
     Gripper.enableCompressor();
 
@@ -116,6 +126,9 @@ public class Robot extends TimedRobot {
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
     // this line or comment it out.
+
+    robotContainer.driveTrain.resetRobotPosition();
+
     Gripper.enableCompressor();
     if (autonomousCommand != null) {
       autonomousCommand.cancel();

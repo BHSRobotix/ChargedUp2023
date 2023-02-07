@@ -33,7 +33,7 @@ public class RobotContainer {
 
   private final HashMap<AutonomousModes, Command> autoCommands = new HashMap<>();
 
-  private final DriveTrain driveTrain = new DriveTrain();
+  public final DriveTrain driveTrain = new DriveTrain();
 
   private final Gripper gripper = new Gripper();
 
@@ -68,9 +68,9 @@ public class RobotContainer {
   private void buildAutoCommands() {
     autoCommands.put(AutonomousModes.BALANCE, new BalanceAuto(driveTrain));
     autoCommands.put(AutonomousModes.DRIVE_DISTANCE, new DriveStraight(driveTrain, 10));
-    autoCommands.put(AutonomousModes.DRIVE_DISTANCE_PID, new DriveSetDistancePID(driveTrain, 10));
+    autoCommands.put(AutonomousModes.DRIVE_DISTANCE_PID, new DriveSetDistancePID(driveTrain, 5));
     autoCommands.put(
-        AutonomousModes.DRIVE_STRAIGHT_DISTANCE_PID, new DriveStraightPID(driveTrain, 10));
+        AutonomousModes.DRIVE_STRAIGHT_DISTANCE_PID, new DriveStraightPID(driveTrain, 5));
 
     autoCommands.put(AutonomousModes.TEST, new TestAuto(driveTrain));
   }

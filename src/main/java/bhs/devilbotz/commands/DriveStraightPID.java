@@ -18,7 +18,7 @@ public class DriveStraightPID extends CommandBase {
   public DriveStraightPID(DriveTrain drivetrain, double distance) {
     this.drivetrain = drivetrain;
     this.distance = distance;
-    distance_pid = new PIDController(0.25, 0, 0.1);
+    distance_pid = new PIDController(0.9, 0, 0.1);
     straight_pid = new PIDController(0.1, 0, 0);
 
     addRequirements(drivetrain);
@@ -60,7 +60,7 @@ public class DriveStraightPID extends CommandBase {
   @Override
   public boolean isFinished() {
     // return distance_pid.atSetpoint();
-    if (Math.abs(distance_pid.getPositionError()) < 0.001) {
+    if (Math.abs(distance_pid.getPositionError()) < 0.01) {
       return true;
     }
     return false;
