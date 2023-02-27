@@ -5,10 +5,17 @@
 package bhs.devilbotz.subsystems;
 
 import bhs.devilbotz.Constants;
+import bhs.devilbotz.commands.gripper.GripperClose;
+import bhs.devilbotz.commands.gripper.GripperOpen;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.PneumaticHub;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardContainer;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.Map;
 
 /**
  * This subsystem controls the gripper.
@@ -19,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class Gripper extends SubsystemBase {
   private static final PneumaticHub pneumaticHub =
       new PneumaticHub(Constants.GripperConstants.COMPRESSOR_CAN_ID);
+
   private final DoubleSolenoid doubleSolenoid =
       pneumaticHub.makeDoubleSolenoid(
           Constants.GripperConstants.GRIPPER_SOLENOID_FORWARD,
@@ -27,6 +35,8 @@ public class Gripper extends SubsystemBase {
   /** The constructor for the gripper subsystem. */
   public Gripper() {
     pneumaticHub.disableCompressor();
+
+    buildShuffleboardTab();
   }
 
   /** This method opens the gripper. */
@@ -68,5 +78,29 @@ public class Gripper extends SubsystemBase {
    */
   public static boolean getAtSetpoint() {
     return pneumaticHub.getPressureSwitch();
+  }
+
+  public void buildShuffleboardTab() {
+
+    ShuffleboardTab tab = Shuffleboard.getTab("Arm");
+
+    tab.add("Gripper subsystem", this).withPosition(6, 0);
+
+    ShuffleboardContainer cmdList =
+        tab.getLayout("GripCmds", BuiltInLayouts.kGrid)
+            .withPosition(6, 1)
+            .withSize(2, 1)
+            .withProperties(Map.of("Number of columns", 2, "Number of rows", 1));
+
+    cmdList.add(new GripperOpen(this)).withPosition(0, 0);
+    cmdList.add(new GripperClose(this)).withPosition(1, 0);
+
+    ShuffleboardContainer state =
+        tab.getLayout("GripState", BuiltInLayouts.kGrid)
+            .withPosition(6, 2)
+            .withSize(2, 2)
+            .withProperties(Map.of("Number of columns", 1, "Number of rows", 1));
+
+    state.add(doubleSolenoid);
   }
 }

@@ -332,7 +332,7 @@ public class Arm extends SubsystemBase {
     ShuffleboardTab tab = Shuffleboard.getTab("Arm");
 
     ShuffleboardContainer cmdList =
-        tab.getLayout("Cmds", BuiltInLayouts.kGrid)
+        tab.getLayout("ArmCmds", BuiltInLayouts.kGrid)
             .withPosition(0, 0)
             .withSize(2, 4)
             .withProperties(Map.of("Number of columns", 2, "Number of rows", 4));
@@ -387,5 +387,9 @@ public class Arm extends SubsystemBase {
     list.addBoolean("belowMiddle", () -> belowMiddle())
         .withWidget(BuiltInWidgets.kBooleanBox)
         .withPosition(1, 2);
+
+    list.addBoolean("isMoving", () -> isMoving())
+        .withWidget(BuiltInWidgets.kBooleanBox)
+        .withPosition(1, 3);
   }
 }
